@@ -1,0 +1,50 @@
+---
+source: crates/ruff_python_parser/src/lexer/mod.rs
+expression: tokens
+---
+[
+    Token {
+        kind: Comment,
+        length: 6,
+        value: Some(
+            "#Hello",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: NonLogicalNewline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: Comment,
+        length: 6,
+        value: Some(
+            "#World",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: NonLogicalNewline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: EndOfFile,
+        length: 0,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+]

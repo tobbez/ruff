@@ -1,0 +1,24 @@
+---
+source: crates/ruff_python_parser/src/lexer/mod.rs
+expression: tokens
+---
+[
+    Token {
+        kind: String,
+        length: 14,
+        value: Some(
+            "\"\\N{EN SPACE}\"",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: EndOfFile,
+        length: 0,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+]

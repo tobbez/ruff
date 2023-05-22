@@ -1818,6 +1818,7 @@ dependencies = [
 name = "ruff-python-parser"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.3.1",
  "insta",
  "itertools",
  "num-bigint",
@@ -1828,6 +1829,7 @@ dependencies = [
  "rustc-hash",
  "rustpython-ast",
  "rustpython-parser-core",
+ "static_assertions",
  "unic-emoji-char",
  "unic-ucd-ident",
  "unicode_names2",

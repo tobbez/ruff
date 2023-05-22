@@ -1,0 +1,24 @@
+---
+source: crates/ruff_python_parser/src/lexer/mod.rs
+expression: tokens
+---
+[
+    Token {
+        kind: String,
+        length: 23,
+        value: Some(
+            "\"\"\"\r\n test string\r\n \"\"\"",
+        ),
+        flags: TokenFlags(
+            TripleQuoted,
+        ),
+    },
+    Token {
+        kind: EndOfFile,
+        length: 0,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+]

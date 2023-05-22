@@ -1,0 +1,176 @@
+---
+source: crates/ruff_python_parser/src/lexer/mod.rs
+expression: tokens
+---
+[
+    Token {
+        kind: String,
+        length: 6,
+        value: Some(
+            "\"test\"",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 6,
+        value: Some(
+            "'test'",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 10,
+        value: Some(
+            "\"\"\"test\"\"\"",
+        ),
+        flags: TokenFlags(
+            TripleQuoted,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 10,
+        value: Some(
+            "'''test'''",
+        ),
+        flags: TokenFlags(
+            TripleQuoted,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 6,
+        value: Some(
+            "r'raw'",
+        ),
+        flags: TokenFlags(
+            Raw,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 10,
+        value: Some(
+            "u'unicode'",
+        ),
+        flags: TokenFlags(
+            Unicode,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 44,
+        value: Some(
+            "\"\"\"a multiline string\nthat continues here\"\"\"",
+        ),
+        flags: TokenFlags(
+            TripleQuoted,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: NonLogicalNewline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 24,
+        value: Some(
+            "\"An unterminated string\n",
+        ),
+        flags: TokenFlags(
+            Unterminated,
+        ),
+    },
+    Token {
+        kind: String,
+        length: 15,
+        value: Some(
+            "\"Recovers here\"",
+        ),
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: Newline,
+        length: 1,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+    Token {
+        kind: EndOfFile,
+        length: 0,
+        value: None,
+        flags: TokenFlags(
+            0x0,
+        ),
+    },
+]
