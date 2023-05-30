@@ -112,19 +112,82 @@
 #![doc(html_logo_url = "https://raw.githubusercontent.com/RustPython/RustPython/main/logo.png")]
 #![doc(html_root_url = "https://docs.rs/rustpython-parser/")]
 
+use crate::module::parse_module;
+use crate::parser::{Diagnostic, Parser};
 pub use rustpython_ast as ast;
+use rustpython_ast::ModModule;
 
 mod function;
 // Skip flattening lexer to distinguish from full parser
 mod context;
+mod expression;
 pub mod lexer;
+mod module;
+mod parser;
+mod statements;
+mod syntax_factory;
+mod tokens;
+mod trivia;
 // mod soft_keywords;
 // mod string;
 
 // pub use string::FStringErrorType;
 
+pub fn parse_program(source: &str) -> Parse<ModModule> {
+    let mut parser = Parser::new(source);
+
+    let module = parse_module(&mut parser);
+
+    Parse {
+        root: module,
+        diagnostics: parser.finish(),
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Parse<T> {
+    root: T,
+    diagnostics: Vec<Diagnostic>,
+}
+
+impl<T> Parse<T> {
+    fn root(&self) -> &T {
+        &self.root
+    }
+
+    fn into_root(self) -> T {
+        self.root
+    }
+
+    fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
+    }
+
+    fn into_diagnostics(self) -> Vec<Diagnostic> {
+        self.diagnostics
+    }
+}
+
 pub enum Mode {
     Interactive,
     Module,
     Expression,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parse_program;
+
+    #[test]
+    fn smoke_test() {
+        let parsed = parse_program(
+            r#"
+while a:
+    break
+else:
+    continue"#,
+        );
+
+        dbg!(parsed);
+    }
 }

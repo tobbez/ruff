@@ -3,6 +3,7 @@ use std::str::Chars;
 
 pub(crate) const EOF_CHAR: char = '\0';
 
+#[derive(Clone, Debug)]
 pub(super) struct Cursor<'a> {
     chars: Chars<'a>,
     source_length: TextSize,

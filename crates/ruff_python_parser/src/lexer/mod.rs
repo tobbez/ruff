@@ -47,6 +47,7 @@ use crate::lexer::token::StringKind;
 pub use token::{Token, TokenFlags, TokenKind};
 
 /// A lexer for Python source code.
+#[derive(Clone, Debug)]
 pub struct Lexer<'source> {
     cursor: Cursor<'source>,
 
@@ -412,6 +413,8 @@ impl<'source> Lexer<'source> {
 
             _ => {
                 return if self.new_logical_line {
+                    // FIXME We've already consumed the first character but we now return the indentation
+                    // token.
                     self.new_logical_line = false;
                     self.handle_indentation(Indentation::root())
                 } else {
@@ -1325,6 +1328,19 @@ that continues here"""
     fn triple_quoted_unix() {
         let source = triple_quoted_test_source(UNIX_EOL);
         let tokens = lex_source(&source);
+
+        assert_debug_snapshot!(tokens);
+    }
+
+    #[test]
+    fn while_else() {
+        let source = r#"
+while a:
+    break
+else:
+    continue"#;
+
+        let tokens = lex_source(source);
 
         assert_debug_snapshot!(tokens);
     }

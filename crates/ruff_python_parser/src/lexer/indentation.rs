@@ -67,7 +67,7 @@ pub(super) struct UnexpectedIndentation;
 // The indentations stack is used to keep track of the current indentation level.
 // Similar to the CPython implementation, the Indentations stack always has at
 // least one level which is never popped. See Reference 2.1.8.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) struct Indentations {
     stack: Vec<Indentation>,
 }
