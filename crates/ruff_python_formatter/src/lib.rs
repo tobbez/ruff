@@ -279,31 +279,11 @@ if True:
     #[test]
     fn quick_test() {
         let src = r#"
-with (
-    [
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "bbbbbbbbbb",
-        "cccccccccccccccccccccccccccccccccccccccccc",
-        dddddddddddddddddddddddddddddddd,
-    ] as example1,
-    aaaaaaaaaaaaaaaaaaaaaaaaaa
-    + bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-    + cccccccccccccccccccccccccccc
-    + ddddddddddddddddd as example2,
-    CtxManager2() as example2,
-    CtxManager2() as example2,
-    CtxManager2() as example2,
-):
-    ...
-
-with [
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "bbbbbbbbbb",
-    "cccccccccccccccccccccccccccccccccccccccccc",
-    dddddddddddddddddddddddddddddddd,
-] as example1, aaaaaaaaaaaaaaaaaaaaaaaaaa * bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * cccccccccccccccccccccccccccc + ddddddddddddddddd as example2, CtxManager222222222222222() as example2:
-    ...
-
+def test():
+    return (
+        "((TIME_TO_SEC(%(lhs)s) * 1000000 + MICROSECOND(%(lhs)s)) -"
+        " (TIME_TO_SEC(%(rhs)s) * 1000000 + MICROSECOND(%(rhs)s)))"
+    ) % {"lhs": lhs_sql, "rhs": rhs_sql}, tuple(lhs_params) * 2 + tuple(rhs_params) * 2
 "#;
         // Tokenize once
         let mut tokens = Vec::new();
