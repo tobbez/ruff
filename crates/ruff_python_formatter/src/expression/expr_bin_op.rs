@@ -41,7 +41,7 @@ impl FormatNodeRule<ExprBinOp> for FormatExprBinOp {
     fn fmt_fields(&self, item: &ExprBinOp, f: &mut PyFormatter) -> FormatResult<()> {
         let comments = f.context().comments().clone();
 
-        match self.layout(item, f.context()) {
+        match Self::layout(item, f.context()) {
             BinOpLayout::LeftString(expression) => {
                 let right_has_leading_comment = f
                     .context()
@@ -168,7 +168,7 @@ impl FormatNodeRule<ExprBinOp> for FormatExprBinOp {
 }
 
 impl FormatExprBinOp {
-    fn layout<'a>(self, bin_op: &'a ExprBinOp, context: &PyFormatContext) -> BinOpLayout<'a> {
+    fn layout<'a>(bin_op: &'a ExprBinOp, context: &PyFormatContext) -> BinOpLayout<'a> {
         if let Some(
             constant @ ExprConstant {
                 value: Constant::Str(_),
