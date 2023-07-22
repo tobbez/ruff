@@ -1,5 +1,5 @@
 use crate::format_element::tag::{Condition, Tag};
-use crate::prelude::tag::{DedentMode, GroupMode, LabelId};
+use crate::prelude::tag::{DedentMode, GroupMode, LabelId, PreferredGroupMode};
 use crate::prelude::*;
 use crate::{format_element, write, Argument, Arguments, FormatContext, GroupId, TextSize};
 use crate::{Buffer, VecBuffer};
@@ -1363,6 +1363,7 @@ pub fn group<Context>(content: &impl Format<Context>) -> Group<Context> {
         content: Argument::new(content),
         group_id: None,
         should_expand: false,
+        preferred_mode: PreferredGroupMode::Expanded,
     }
 }
 
@@ -1371,6 +1372,7 @@ pub struct Group<'a, Context> {
     content: Argument<'a, Context>,
     group_id: Option<GroupId>,
     should_expand: bool,
+    preferred_mode: PreferredGroupMode,
 }
 
 impl<Context> Group<'_, Context> {
@@ -1389,6 +1391,11 @@ impl<Context> Group<'_, Context> {
         self.should_expand = should_expand;
         self
     }
+
+    pub fn with_preferred_mode(mut self, preferred_mode: PreferredGroupMode) -> Self {
+        self.preferred_mode = preferred_mode;
+        self
+    }
 }
 
 impl<Context> Format<Context> for Group<'_, Context> {
@@ -1399,7 +1406,10 @@ impl<Context> Format<Context> for Group<'_, Context> {
         };
 
         f.write_element(FormatElement::Tag(StartGroup(
-            tag::Group::new().with_id(self.group_id).with_mode(mode),
+            tag::Group::new()
+                .with_id(self.group_id)
+                .with_mode(mode)
+                .with_preferred_mode(self.preferred_mode),
         )))?;
 
         Arguments::from(&self.content).fmt(f)?;

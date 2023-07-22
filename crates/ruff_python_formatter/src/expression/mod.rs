@@ -3,8 +3,12 @@ use std::cmp::Ordering;
 use rustpython_parser::ast;
 use rustpython_parser::ast::{Expr, Operator};
 
-use ruff_formatter::{FormatOwnedWithRule, FormatRefWithRule, FormatRule, FormatRuleWithOptions};
+use ruff_formatter::format_element::tag::PreferredGroupMode;
+use ruff_formatter::{
+    format_args, FormatOwnedWithRule, FormatRefWithRule, FormatRule, FormatRuleWithOptions,
+};
 use ruff_python_ast::node::AnyNodeRef;
+use ruff_python_ast::str::is_implicit_concatenation;
 use ruff_python_ast::visitor::preorder::{walk_expr, PreorderVisitor};
 
 use crate::builders::parenthesize_if_expands;
@@ -189,8 +193,14 @@ impl Format<PyFormatContext<'_>> for MaybeParenthesizeExpression<'_> {
                         .fmt(f)
                 } else {
                     parenthesize_if_expands(&expression.format().with_options(Parentheses::Never))
+                        // .with_preferred_mode(PreferredGroupMode::Flat)
                         .fmt(f)
                 }
+            }
+            OptionalParentheses::NonSplitableMultiline => {
+                parenthesize_if_expands(&expression.format().with_options(Parentheses::Never))
+                    .with_preferred_mode(PreferredGroupMode::Flat)
+                    .fmt(f)
             }
             OptionalParentheses::Always => {
                 expression.format().with_options(Parentheses::Always).fmt(f)
@@ -396,7 +406,17 @@ impl<'input> CanOmitOptionalParenthesesVisitor<'input> {
                 }
             }
 
+            Expr::Constant(ast::ExprConstant {
+                value: ast::Constant::Str(_),
+                range,
+                ..
+            }) if is_implicit_concatenation(&self.source[*range]) => {
+                // At least two, actual count doesn't matter
+                self.update_max_priority_with_count(OperatorPriority::String, 2);
+            }
+
             Expr::NamedExpr(_)
+            | Expr::Constant(_)
             | Expr::GeneratorExp(_)
             | Expr::Lambda(_)
             | Expr::Await(_)
@@ -404,7 +424,6 @@ impl<'input> CanOmitOptionalParenthesesVisitor<'input> {
             | Expr::YieldFrom(_)
             | Expr::FormattedValue(_)
             | Expr::JoinedStr(_)
-            | Expr::Constant(_)
             | Expr::Starred(_)
             | Expr::Name(_)
             | Expr::Slice(_) => {}

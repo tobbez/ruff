@@ -88,7 +88,7 @@ impl NeedsParentheses for ExprAttribute {
         {
             OptionalParentheses::Always
         } else {
-            self.value.needs_parentheses(parent, context)
+            self.value.needs_parentheses(self.into(), context)
         }
     }
 }

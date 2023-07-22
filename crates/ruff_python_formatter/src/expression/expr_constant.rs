@@ -1,7 +1,8 @@
 use ruff_text_size::{TextLen, TextRange};
 use rustpython_parser::ast::{Constant, ExprConstant, Ranged};
+use unicode_width::UnicodeWidthStr;
 
-use ruff_formatter::{write, FormatRuleWithOptions};
+use ruff_formatter::{write, FormatContext, FormatOptions, FormatRuleWithOptions, IndentStyle};
 use ruff_python_ast::node::AnyNodeRef;
 use ruff_python_ast::str::is_implicit_concatenation;
 
@@ -75,16 +76,37 @@ impl FormatNodeRule<ExprConstant> for FormatExprConstant {
 impl NeedsParentheses for ExprConstant {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
+        parent: AnyNodeRef,
         context: &PyFormatContext,
     ) -> OptionalParentheses {
         if self.value.is_str() {
             let contents = context.locator().slice(self.range());
-            // Don't wrap triple quoted strings
-            if is_multiline_string(self, context.source()) || !is_implicit_concatenation(contents) {
+            // Don't wrap "pointless" strings
+            if parent.is_stmt_expr() {
+                OptionalParentheses::Never
+            } else if is_multiline_string(self, context.source()) {
+                OptionalParentheses::Never
+            } else if is_implicit_concatenation(contents) {
+                OptionalParentheses::Multiline
+            } else if parent.is_expr_call() || parent.is_expr_attribute() {
                 OptionalParentheses::Never
             } else {
-                OptionalParentheses::Multiline
+                // let line_width = usize::from(context.options().line_width().value());
+                // let tab_width = match context.options().indent_style() {
+                //     IndentStyle::Tab => 4,
+                //     IndentStyle::Space(spaces) => spaces as usize,
+                // };
+                // // This is no perfect science, just a heuristic. But more than 8 levels of indent should be rare
+                // // and it allows us to rule out most best fitting usages.
+                // let length_threshold = line_width.saturating_sub(tab_width * 8);
+                //
+                // // We don't care about unicode here, it's just a heuristic
+                // if contents.len() > length_threshold {
+                //     OptionalParentheses::NonSplitableMultiline
+                // } else {
+                //     OptionalParentheses::Multiline
+                // }
+                OptionalParentheses::NonSplitableMultiline
             }
         } else {
             OptionalParentheses::Never

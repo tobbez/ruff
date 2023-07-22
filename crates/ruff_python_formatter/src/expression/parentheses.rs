@@ -1,5 +1,6 @@
 use rustpython_parser::ast::Ranged;
 
+use ruff_formatter::format_element::tag::PreferredGroupMode;
 use ruff_formatter::prelude::tag::Condition;
 use ruff_formatter::{format_args, write, Argument, Arguments};
 use ruff_python_ast::node::AnyNodeRef;
@@ -12,6 +13,8 @@ use crate::prelude::*;
 pub(crate) enum OptionalParentheses {
     /// Add parentheses if the expression expands over multiple lines
     Multiline,
+
+    NonSplitableMultiline,
 
     /// Always set parentheses regardless if the expression breaks or if they were
     /// present in the source.
@@ -196,6 +199,7 @@ impl<'ast> Format<PyFormatContext<'ast>> for FormatOptionalParentheses<'_, 'ast>
             soft_line_break(),
             if_group_breaks(&text(")"))
         ])
+        // .with_preferred_mode(PreferredGroupMode::Flat)
         .with_group_id(Some(parens_id))
         .fmt(f);
 

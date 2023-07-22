@@ -1,6 +1,7 @@
 use ruff_text_size::{TextRange, TextSize};
 use rustpython_parser::ast::Ranged;
 
+use ruff_formatter::prelude::tag::PreferredGroupMode;
 use ruff_formatter::{format_args, write, Argument, Arguments};
 use ruff_python_trivia::{
     lines_after, skip_trailing_trivia, SimpleToken, SimpleTokenKind, SimpleTokenizer,
@@ -17,11 +18,20 @@ where
 {
     ParenthesizeIfExpands {
         inner: Argument::new(content),
+        preferred_mode: PreferredGroupMode::Expanded,
     }
 }
 
 pub(crate) struct ParenthesizeIfExpands<'a, 'ast> {
     inner: Argument<'a, PyFormatContext<'ast>>,
+    preferred_mode: PreferredGroupMode,
+}
+
+impl ParenthesizeIfExpands<'_, '_> {
+    pub(crate) fn with_preferred_mode(mut self, mode: PreferredGroupMode) -> Self {
+        self.preferred_mode = mode;
+        self
+    }
 }
 
 impl<'ast> Format<PyFormatContext<'ast>> for ParenthesizeIfExpands<'_, 'ast> {
@@ -36,6 +46,7 @@ impl<'ast> Format<PyFormatContext<'ast>> for ParenthesizeIfExpands<'_, 'ast> {
             soft_block_indent(&Arguments::from(&self.inner)),
             if_group_breaks(&text(")")),
         ])
+        .with_preferred_mode(self.preferred_mode)
         .fmt(f);
 
         f.context_mut().set_node_level(saved_level);

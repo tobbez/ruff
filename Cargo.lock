@@ -2161,6 +2161,7 @@ dependencies = [
  "similar",
  "smallvec",
  "thiserror",
+ "unicode-width",
 ]
 
 [[package]]

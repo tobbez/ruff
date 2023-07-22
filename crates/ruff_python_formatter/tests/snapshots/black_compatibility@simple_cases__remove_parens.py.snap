@@ -78,14 +78,7 @@ def example8():
          except Exception as e:
              pass
  
-@@ -30,15 +28,11 @@
- 
- 
- def example2():
--    return (
--        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
--    )
-+    return "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+@@ -36,9 +34,7 @@
  
  
  def example3():
@@ -131,7 +124,9 @@ def example1point5():
 
 
 def example2():
-    return "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    return (
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    )
 
 
 def example3():

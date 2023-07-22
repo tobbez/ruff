@@ -8,7 +8,7 @@ use crate::format_element::document::Document;
 use crate::format_element::tag::{Condition, GroupMode};
 use crate::format_element::{BestFittingMode, BestFittingVariants, LineMode, PrintMode};
 use crate::prelude::tag;
-use crate::prelude::tag::{DedentMode, Tag, TagKind, VerbatimKind};
+use crate::prelude::tag::{DedentMode, PreferredGroupMode, Tag, TagKind, VerbatimKind};
 use crate::printer::call_stack::{
     CallStack, FitsCallStack, PrintCallStack, PrintElementArgs, StackFrame,
 };
@@ -116,7 +116,6 @@ impl<'a> Printer<'a> {
                         self.print_str("\n");
                     }
 
-                    self.state.pending_space = false;
                     self.state.pending_indent = args.indention();
                 }
             }
@@ -144,8 +143,14 @@ impl<'a> Printer<'a> {
             }
 
             FormatElement::Tag(StartGroup(group)) => {
-                let print_mode =
-                    self.print_group(TagKind::Group, group.mode(), args, queue, stack)?;
+                let print_mode = self.print_group(
+                    TagKind::Group,
+                    group.mode(),
+                    group.preferred_mode(),
+                    args,
+                    queue,
+                    stack,
+                )?;
 
                 if let Some(id) = group.id() {
                     self.state.group_modes.insert_print_mode(id, print_mode);
@@ -160,7 +165,14 @@ impl<'a> Printer<'a> {
                 };
 
                 if expected_mode == condition.mode {
-                    self.print_group(TagKind::ConditionalGroup, group.mode(), args, queue, stack)?;
+                    self.print_group(
+                        TagKind::ConditionalGroup,
+                        group.mode(),
+                        PreferredGroupMode::Expanded,
+                        args,
+                        queue,
+                        stack,
+                    )?;
                 } else {
                     // Condition isn't met, render as normal content
                     stack.push(TagKind::ConditionalGroup, args);
@@ -291,6 +303,7 @@ impl<'a> Printer<'a> {
         &mut self,
         kind: TagKind,
         mode: GroupMode,
+        preferred_mode: PreferredGroupMode,
         args: PrintElementArgs,
         queue: &mut PrintQueue<'a>,
         stack: &mut PrintCallStack,
@@ -317,8 +330,24 @@ impl<'a> Printer<'a> {
 
                         if fits {
                             PrintMode::Flat
-                        } else {
+                        } else if preferred_mode == PreferredGroupMode::Expanded {
                             PrintMode::Expanded
+                        } else {
+                            // Measure to see if the group fits up on a single line. If that's the case,
+                            // print the group in "flat" mode, otherwise continue in expanded mode
+                            stack.push(
+                                kind,
+                                args.with_print_mode(PrintMode::Expanded)
+                                    .with_measure_mode(MeasureMode::AllLines),
+                            );
+                            let fits = self.fits(queue, stack)?;
+                            stack.pop(kind)?;
+
+                            if fits {
+                                PrintMode::Expanded
+                            } else {
+                                PrintMode::Flat
+                            }
                         }
                     }
                 }
@@ -747,7 +776,6 @@ struct PrinterState<'a> {
     source_markers: Vec<SourceMarker>,
     source_position: TextSize,
     pending_indent: Indention,
-    pending_space: bool,
     measured_group_fits: bool,
     generated_line: usize,
     generated_column: usize,
@@ -1012,12 +1040,12 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
         let args = self.stack.top();
 
         match element {
-            FormatElement::Space => return Ok(self.fits_text(" ")),
+            FormatElement::Space => return Ok(self.fits_text(" ", args)),
 
             FormatElement::Line(line_mode) => {
                 match args.mode() {
                     PrintMode::Flat => match line_mode {
-                        LineMode::SoftOrSpace => return Ok(self.fits_text(" ")),
+                        LineMode::SoftOrSpace => return Ok(self.fits_text(" ", args)),
                         LineMode::Soft => {}
                         LineMode::Hard | LineMode::Empty => {
                             return Ok(if self.must_be_flat {
@@ -1039,17 +1067,18 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
                             MeasureMode::AllLines => {
                                 // Continue measuring on the next line
                                 self.state.line_width = 0;
+                                self.state.pending_indent = args.indention();
                             }
                         }
                     }
                 }
             }
 
-            FormatElement::StaticText { text } => return Ok(self.fits_text(text)),
-            FormatElement::DynamicText { text, .. } => return Ok(self.fits_text(text)),
+            FormatElement::StaticText { text } => return Ok(self.fits_text(text, args)),
+            FormatElement::DynamicText { text, .. } => return Ok(self.fits_text(text, args)),
             FormatElement::SourceCodeSlice { slice, .. } => {
                 let text = slice.text(self.printer.source_code);
-                return Ok(self.fits_text(text));
+                return Ok(self.fits_text(text, args));
             }
             FormatElement::LineSuffixBoundary => {
                 if self.state.has_line_suffix {
@@ -1261,7 +1290,7 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
         Ok(Fits::Maybe)
     }
 
-    fn fits_text(&mut self, text: &str) -> Fits {
+    fn fits_text(&mut self, text: &str, args: PrintElementArgs) -> Fits {
         let indent = std::mem::take(&mut self.state.pending_indent);
         self.state.line_width += indent.level() as usize * self.options().indent_width() as usize
             + indent.align() as usize;
@@ -1270,10 +1299,17 @@ impl<'a, 'print> FitsMeasurer<'a, 'print> {
             let char_width = match c {
                 '\t' => self.options().tab_width as usize,
                 '\n' => {
-                    return if self.must_be_flat {
-                        Fits::No
+                    if self.must_be_flat {
+                        return Fits::No;
                     } else {
-                        Fits::Yes
+                        match args.measure_mode() {
+                            MeasureMode::FirstLine => return Fits::Yes,
+                            MeasureMode::AllLines => {
+                                self.state.line_width = 0;
+                                self.state.pending_indent = args.indention();
+                                continue;
+                            }
+                        }
                     };
                 }
                 c => c.width().unwrap_or(0),

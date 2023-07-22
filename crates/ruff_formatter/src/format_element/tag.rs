@@ -169,6 +169,13 @@ impl GroupMode {
     }
 }
 
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub enum PreferredGroupMode {
+    #[default]
+    Expanded,
+    Flat,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct FitsExpanded {
     pub(crate) condition: Option<Condition>,
@@ -194,6 +201,7 @@ impl FitsExpanded {
 pub struct Group {
     id: Option<GroupId>,
     mode: Cell<GroupMode>,
+    preferred_mode: PreferredGroupMode,
 }
 
 impl Group {
@@ -201,6 +209,7 @@ impl Group {
         Self {
             id: None,
             mode: Cell::new(GroupMode::Flat),
+            preferred_mode: PreferredGroupMode::Expanded,
         }
     }
 
@@ -214,8 +223,17 @@ impl Group {
         self
     }
 
+    pub fn with_preferred_mode(mut self, mode: PreferredGroupMode) -> Self {
+        self.preferred_mode = mode;
+        self
+    }
+
     pub fn mode(&self) -> GroupMode {
         self.mode.get()
+    }
+
+    pub fn preferred_mode(&self) -> PreferredGroupMode {
+        self.preferred_mode
     }
 
     pub fn propagate_expand(&self) {
