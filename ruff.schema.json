@@ -1241,6 +1241,13 @@
       "description": "Experimental: Configures how `ruff format` formats your code.\n\nPlease provide feedback in [this discussion](https://github.com/astral-sh/ruff/discussions/7310).",
       "type": "object",
       "properties": {
+        "docstring-code": {
+          "description": "Whether to format code snippets in docstrings.\n\nWhen this is enabled, Python code in the format of doctests within docstrings is automatically reformatted.\n\nFor example, when this is enabled, the following code:\n\n```python def f(x): \"\"\" Something about `f`. And an example:\n\n>>> f(  x  ) \"\"\" pass ```\n\nwill be reformatted (assuming the rest of the options are set to their defaults) as:\n\n```python def f(x): \"\"\" Something about `f`. And an example:\n\n>>> f(x) \"\"\" pass ```\n\nIf a doctest contains invalid Python code or if the formatter would otherwise write invalid Python code, then the doctest is ignored by the formatter and kept as-is.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "exclude": {
           "description": "A list of file patterns to exclude from formatting in addition to the files excluded globally (see [`exclude`](#exclude), and [`extend-exclude`](#extend-exclude)).\n\nExclusions are based on globs, and can be either:\n\n- Single-path patterns, like `.mypy_cache` (to exclude any directory named `.mypy_cache` in the tree), `foo.py` (to exclude any file named `foo.py`), or `foo_*.py` (to exclude any file matching `foo_*.py` ). - Relative patterns, like `directory/foo.py` (to exclude that specific file) or `directory/*.py` (to exclude any Python files in `directory`). Note that these paths are relative to the project root (e.g., the directory containing your `pyproject.toml`).\n\nFor more information on the glob syntax, refer to the [`globset` documentation](https://docs.rs/globset/latest/globset/#syntax).",
           "type": [

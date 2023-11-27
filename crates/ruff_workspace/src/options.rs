@@ -2871,6 +2871,49 @@ pub struct FormatOptions {
         "#
     )]
     pub line_ending: Option<LineEnding>,
+
+    /// Whether to format code snippets in docstrings.
+    ///
+    /// When this is enabled, Python code in the format of doctests
+    /// within docstrings is automatically reformatted.
+    ///
+    /// For example, when this is enabled, the following code:
+    ///
+    /// ```python
+    /// def f(x):
+    ///     """
+    ///     Something about `f`. And an example:
+    ///
+    ///     >>> f(  x  )
+    ///     """
+    ///     pass
+    /// ```
+    ///
+    /// will be reformatted (assuming the rest of the options are set
+    /// to their defaults) as:
+    ///
+    /// ```python
+    /// def f(x):
+    ///     """
+    ///     Something about `f`. And an example:
+    ///
+    ///     >>> f(x)
+    ///     """
+    ///     pass
+    /// ```
+    ///
+    /// If a doctest contains invalid Python code or if the formatter would
+    /// otherwise write invalid Python code, then the doctest is ignored by
+    /// the formatter and kept as-is.
+    #[option(
+        default = "false",
+        value_type = "bool",
+        example = r#"
+            # Enable reformatting of code snippets in docstrings.
+            docstring-code = true
+        "#
+    )]
+    pub docstring_code: Option<bool>,
 }
 
 #[cfg(test)]
