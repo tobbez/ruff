@@ -39,6 +39,7 @@ class Repository(NamedTuple):
     repo: str
     ref: str | None
     select: str = ""
+    extend_select: str = ""
     ignore: str = ""
     exclude: str = ""
     # Generating fixes is slow and verbose
@@ -154,6 +155,9 @@ REPOSITORIES: list[Repository] = [
     Repository("tiangolo", "fastapi", "master"),
     Repository("yandex", "ch-backup", "main"),
     Repository("zulip", "zulip", "main", select="ALL"),
+    # Jupyter Notebooks
+    Repository("huggingface", "notebooks", "main", extend_select="B,D"),
+    Repository("openai", "openai-cookbook", "main", extend_select="B,D"),
 ]
 
 SUMMARY_LINE_RE = re.compile(r"^(Found \d+ error.*)|(.*potentially fixable with.*)$")
@@ -169,6 +173,7 @@ async def check(
     path: Path,
     name: str,
     select: str = "",
+    extend_select: str = "",
     ignore: str = "",
     exclude: str = "",
     show_fixes: bool = False,
@@ -178,6 +183,8 @@ async def check(
     ruff_args = ["check", "--no-cache", "--exit-zero"]
     if select:
         ruff_args.extend(["--select", select])
+    if extend_select:
+        ruff_args.extend(["--extend-select", extend_select])
     if ignore:
         ruff_args.extend(["--ignore", ignore])
     if exclude:
