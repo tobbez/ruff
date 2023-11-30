@@ -1,13 +1,15 @@
+use crate::builders::parenthesize_if_expands;
 use ruff_formatter::{format_args, write, FormatError};
-use ruff_python_ast::{AnyNodeRef, Expr, StmtAssign};
+use ruff_python_ast::{AnyNodeRef, Expr, ExpressionRef, StmtAssign};
 
 use crate::comments::{trailing_comments, SourceComment, SuppressionKind};
 use crate::context::{NodeLevel, WithNodeLevel};
 use crate::expression::parentheses::{
-    NeedsParentheses, OptionalParentheses, Parentheses, Parenthesize,
+    is_expression_parenthesized, NeedsParentheses, OptionalParentheses, Parentheses, Parenthesize,
 };
 use crate::expression::{has_own_parentheses, maybe_parenthesize_expression};
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
 use crate::statement::trailing_semicolon;
 
 #[derive(Default)]
@@ -25,24 +27,30 @@ impl FormatNodeRule<StmtAssign> for FormatStmtAssign {
             "Expected at least on assignment target",
         ))?;
 
-        write!(
-            f,
-            [
-                first.format(),
-                space(),
-                token("="),
-                space(),
-                FormatTargets { targets: rest }
-            ]
-        )?;
+        write!(f, [first.format(), space(), token("="), space()])?;
+
+        if is_prefer_splitting_right_hand_side_of_assignments_enabled(f.context()) {
+            for target in rest {
+                if has_own_parentheses(target, f.context()).is_some()
+                    && !f.context().comments().has_leading(target)
+                {
+                    target.format().with_options(Parentheses::Never).fmt(f)?;
+                } else {
+                    parenthesize_if_expands(&target.format().with_options(Parentheses::Never))
+                        .fmt(f)?;
+                }
+                write!(f, [space(), token("="), space()])?;
+            }
+        } else {
+            FormatTargets { targets: rest }.fmt(f)?;
+        }
 
         FormatStatementsLastExpression::new(value, item).fmt(f)?;
 
         if f.options().source_type().is_ipynb()
             && f.context().node_level().is_last_top_level_statement()
-            && rest.is_empty()
-            && first.is_name_expr()
             && trailing_semicolon(item.into(), f.context().source()).is_some()
+            && matches!(targets.as_slice(), [Expr::Name(_)])
         {
             token(";").fmt(f)?;
         }
@@ -196,6 +204,11 @@ impl Format<PyFormatContext<'_>> for FormatStatementsLastExpression<'_> {
             _ => false,
         };
 
+        // BestFitParenthesize with mode group doesn't really work, because groups to the left avoid breaking the content
+        // assuming that the parenthesized content will break. However, the parenthesized content may then end up
+        // too-long, so that it doesn't get parenthesized. The result is that we didn't split a line at positions where we could,
+        // resulting in much longer lines. Meaning, the `mode`: `Group` inherently doesn't work
+
         if !can_inline_comment {
             return maybe_parenthesize_expression(
                 self.expression,
@@ -237,27 +250,60 @@ impl Format<PyFormatContext<'_>> for FormatStatementsLastExpression<'_> {
             };
 
             let group_id = f.group_id("optional_parentheses");
-            let f = &mut WithNodeLevel::new(NodeLevel::Expression(Some(group_id)), f);
 
-            best_fit_parenthesize(&format_with(|f| {
+            // Black always parenthesizes if the right side is splittable, either because it has multiple targets OR
+            // the expression itself can be split (not a name or attribute chain with names only).
+            let best_fit_layout =
+                !is_prefer_splitting_right_hand_side_of_assignments_enabled(f.context())
+                    || !is_assignment_with_splittable_targets(self.parent, f.context());
+
+            if best_fit_layout {
+                let f = &mut WithNodeLevel::new(NodeLevel::Expression(Some(group_id)), f);
+
+                best_fit_parenthesize(&format_with(|f| {
+                    inline_comments.mark_formatted();
+
+                    self.expression
+                        .format()
+                        .with_options(Parentheses::Never)
+                        .fmt(f)?;
+
+                    if !inline_comments.is_empty() {
+                        // If the expressions exceeds the line width, format the comments in the parentheses
+                        if_group_breaks(&inline_comments).fmt(f)?;
+                    }
+
+                    Ok(())
+                }))
+                .with_group_id(Some(group_id))
+                .fmt(f)?;
+            } else {
                 inline_comments.mark_formatted();
 
-                self.expression
-                    .format()
-                    .with_options(Parentheses::Never)
-                    .fmt(f)?;
+                group(&format_args![
+                    if_group_breaks(&token("(")),
+                    indent(&format_args![
+                        soft_line_break(),
+                        self.expression.format().with_options(Parentheses::Never)
+                    ])
+                ])
+                .with_group_id(Some(group_id))
+                .fmt(f)?;
 
+                // It's necessary to format the comments outside the group or they would
+                // force expand the group. This is a bit sketchy, because it no longer measures whether the
+                // closing `)` fits. However, the closing `)` should always fit if the opening `)` did.
                 if !inline_comments.is_empty() {
                     // If the expressions exceeds the line width, format the comments in the parentheses
                     if_group_breaks(&inline_comments)
                         .with_group_id(Some(group_id))
                         .fmt(f)?;
-                }
+                };
 
-                Ok(())
-            }))
-            .with_group_id(Some(group_id))
-            .fmt(f)?;
+                if_group_breaks(&format_args![soft_line_break(), token(")")])
+                    .with_group_id(Some(group_id))
+                    .fmt(f)?;
+            }
 
             if !inline_comments.is_empty() {
                 // If the line fits into the line width, format the comments after the parenthesized expression
@@ -311,5 +357,78 @@ impl Format<PyFormatContext<'_>> for OptionalParenthesesInlinedComments<'_> {
                 trailing_comments(self.statement)
             ]
         )
+    }
+}
+
+/// Returns `true` if the passed assignment like node can be split in case the assignment statement doesn't fit on a single line.
+///
+/// Knowing whether the assignment can split is required because Ruff uses the [`BestFit`] layout for
+/// non-splittable values like strings, numbers, names, etc. but only if the assignment can't be split as well.
+/// The motivation for the besst fit layout is to avoid unnecessary parentheses:
+///
+/// ```python
+/// unsplittable = very_long_value
+/// ```
+///
+/// is preferred over
+///
+/// ```python
+/// unsplittable = (
+///     very_long_value
+/// )
+/// ```
+///
+/// if the `very_long_value` doesn't fit even when parenthesizing it.
+///
+/// Ideally, the best fit layout is applied regardless of whether the target(s) can split and changing
+/// [`BestFitParenthesize`] to have a group like semantic where the right breaks before the left would be sufficient.
+/// However, it is possible to run into the situation where the target decides **not** to split
+/// because there's sufficient space to print the opening parentheses that is followed by a newline (break right before left).
+/// However, [`BestFitParenthesize`] may now decide not to parenthesize because the value doesn't fit even when parenthesized,
+/// in which case it would have been preferred to, at least, split the targets to make some more space.
+///
+/// Changing the `target` group to continue measuring to ensure that the `value` fits would be hard to add to our Printer
+/// that generally only tests if the content up to the next soft or hard line break fits.
+///
+/// That's why we use this check for now. Using this check also aligns with Black's behavior to always
+/// parenthesize values if they exceed the line-width when the target(s) is/are splittable.
+pub(crate) fn is_assignment_with_splittable_targets(
+    assignment: AnyNodeRef,
+    context: &PyFormatContext,
+) -> bool {
+    match assignment {
+        AnyNodeRef::StmtAssign(StmtAssign { targets, .. }) => {
+            if let [only] = targets.as_slice() {
+                is_splittable_target_or_annotation(only)
+            } else {
+                true
+            }
+        }
+        AnyNodeRef::StmtTypeAlias(alias) => {
+            alias.type_params.is_some() || is_splittable_target_or_annotation(&alias.name)
+        }
+        AnyNodeRef::StmtAnnAssign(assign) => {
+            is_splittable_target_or_annotation(&assign.target)
+                || is_splittable_target_or_annotation(&assign.annotation)
+                // TODO(micha): Remove when implementing the type annotation split preview style
+                || is_expression_parenthesized(
+                    ExpressionRef::from(&assign.annotation),
+                    context.comments().ranges(),
+                    context.source(),
+                )
+        }
+        AnyNodeRef::StmtAugAssign(assign) => is_splittable_target_or_annotation(&assign.target),
+        _ => false,
+    }
+}
+
+// TODO it seems Black uses the best fit layout also when it is known that the target will split either
+// because of a comment OR a magic trailing comma.
+const fn is_splittable_target_or_annotation(target: &Expr) -> bool {
+    match target {
+        Expr::Name(_) => false,
+        Expr::Attribute(attribute) => is_splittable_target_or_annotation(&attribute.value),
+        Expr::StringLiteral(literal) => literal.value.is_implicit_concatenated(),
+        _ => true,
     }
 }

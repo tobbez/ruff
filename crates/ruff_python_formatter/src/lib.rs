@@ -181,7 +181,7 @@ mod tests {
 
     use ruff_python_parser::{parse_ok_tokens, AsMode};
 
-    use crate::{format_module_ast, format_module_source, PyFormatOptions};
+    use crate::{format_module_ast, format_module_source, PreviewMode, PyFormatOptions};
 
     /// Very basic test intentionally kept very similar to the CLI
     #[test]
@@ -209,13 +209,7 @@ if True:
     #[test]
     fn quick_test() {
         let source = r#"
-def main() -> None:
-    if True:
-        some_very_long_variable_name_abcdefghijk = Foo()
-        some_very_long_variable_name_abcdefghijk = some_very_long_variable_name_abcdefghijk[
-            some_very_long_variable_name_abcdefghijk.some_very_long_attribute_name
-            == "This is a very long string abcdefghijk"
-        ]
+this_is_a_ridiculously_long_name_and_nobody_in_their_right_mind_would_use_one_like_it = 0
 
 "#;
         let source_type = PySourceType::Python;
@@ -224,7 +218,8 @@ def main() -> None:
         // Parse the AST.
         let source_path = "code_inline.py";
         let module = parse_ok_tokens(tokens, source, source_type.as_mode(), source_path).unwrap();
-        let options = PyFormatOptions::from_extension(Path::new(source_path));
+        let options = PyFormatOptions::from_extension(Path::new(source_path))
+            .with_preview(PreviewMode::Enabled);
         let formatted = format_module_ast(&module, &comment_ranges, source, options).unwrap();
 
         // Uncomment the `dbg` to print the IR.

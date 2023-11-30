@@ -8,6 +8,8 @@ use crate::expression::parentheses::{
 };
 use crate::expression::CallChainLayout;
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
+use crate::statement::stmt_assign::is_assignment_with_splittable_targets;
 
 #[derive(Default)]
 pub struct FormatExprCall {
@@ -87,7 +89,7 @@ impl FormatNodeRule<ExprCall> for FormatExprCall {
 impl NeedsParentheses for ExprCall {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
+        parent: AnyNodeRef,
         context: &PyFormatContext,
     ) -> OptionalParentheses {
         if CallChainLayout::from_expression(
@@ -105,6 +107,13 @@ impl NeedsParentheses for ExprCall {
             context.source(),
         ) {
             OptionalParentheses::Never
+        } else if is_prefer_splitting_right_hand_side_of_assignments_enabled(context)
+            && is_assignment_with_splittable_targets(parent, context)
+        {
+            match self.func.needs_parentheses(self.into(), context) {
+                OptionalParentheses::BestFit => OptionalParentheses::Multiline,
+                parentheses => parentheses,
+            }
         } else {
             self.func.needs_parentheses(self.into(), context)
         }

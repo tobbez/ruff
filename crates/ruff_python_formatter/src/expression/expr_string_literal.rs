@@ -9,6 +9,8 @@ use crate::expression::string::{
     AnyString, FormatString, StringLayout, StringPrefix, StringQuotes,
 };
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
+use crate::statement::stmt_assign::is_assignment_with_splittable_targets;
 
 #[derive(Default)]
 pub struct FormatExprStringLiteral {
@@ -43,13 +45,17 @@ impl FormatNodeRule<ExprStringLiteral> for FormatExprStringLiteral {
 impl NeedsParentheses for ExprStringLiteral {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
+        parent: AnyNodeRef,
         context: &PyFormatContext,
     ) -> OptionalParentheses {
         if self.value.is_implicit_concatenated() {
             OptionalParentheses::Multiline
         } else if is_multiline_string(self.into(), context.source()) {
             OptionalParentheses::Never
+        } else if is_prefer_splitting_right_hand_side_of_assignments_enabled(context)
+            && is_assignment_with_splittable_targets(parent, context)
+        {
+            OptionalParentheses::Multiline
         } else {
             OptionalParentheses::BestFit
         }

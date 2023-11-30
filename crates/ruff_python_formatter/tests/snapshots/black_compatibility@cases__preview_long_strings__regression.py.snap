@@ -832,7 +832,7 @@ s = f'Lorem Ipsum is simply dummy text of the printing and typesetting industry:
  
  some_commented_string = (  # This comment stays at the top.
      "This string is long but not so long that it needs hahahah toooooo be so greatttt"
-@@ -279,38 +280,27 @@
+@@ -279,37 +280,26 @@
  )
  
  lpar_and_rpar_have_comments = func_call(  # LPAR Comment
@@ -874,11 +874,10 @@ s = f'Lorem Ipsum is simply dummy text of the printing and typesetting industry:
  )
  
 -fstring = f"We have to remember to escape {braces}. Like {{these}}. But not {this}."
- 
 -
+ 
  class A:
      class B:
-         def foo():
 @@ -364,10 +354,7 @@
          def foo():
              if not hasattr(module, name):
@@ -943,12 +942,11 @@ s = f'Lorem Ipsum is simply dummy text of the printing and typesetting industry:
 +        ], "xxxxxxxxxxx xxxxxxx xxxx (xxxxxx xxxx) %x xxx xxxxx" % xxxxxxx_xxxx
  
  
--value.__dict__[key] = (
+ value.__dict__[key] = (
 -    "test"  # set some Thrift field to non-None in the struct aa bb cc dd ee
 -)
-+value.__dict__[
-+    key
-+] = "test"  # set some Thrift field to non-None in the struct aa bb cc dd ee
++    "test"
++)  # set some Thrift field to non-None in the struct aa bb cc dd ee
  
  RE_ONE_BACKSLASH = {
      "asdf_hjkl_jkl": re.compile(
@@ -1627,9 +1625,9 @@ class xxxxxxxxxxxxxxxxxxxxx(xxxx.xxxxxxxxxxxxx):
         ], "xxxxxxxxxxx xxxxxxx xxxx (xxxxxx xxxx) %x xxx xxxxx" % xxxxxxx_xxxx
 
 
-value.__dict__[
-    key
-] = "test"  # set some Thrift field to non-None in the struct aa bb cc dd ee
+value.__dict__[key] = (
+    "test"
+)  # set some Thrift field to non-None in the struct aa bb cc dd ee
 
 RE_ONE_BACKSLASH = {
     "asdf_hjkl_jkl": re.compile(

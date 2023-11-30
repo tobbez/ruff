@@ -348,4 +348,21 @@ f5 = {  # f5
 ```
 
 
+## Preview changes
+```diff
+--- Stable
++++ Preview
+@@ -9,7 +9,8 @@
+ a3 = f(  # a 3
+     x
+ )
+-a4 = (  # a 4
++a4 = (
++    # a 4
+     x
+ ) = a4
+ a5: List(  # a 5
+```
+
+
 

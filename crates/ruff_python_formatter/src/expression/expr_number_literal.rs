@@ -6,6 +6,8 @@ use ruff_text_size::{Ranged, TextSize};
 
 use crate::expression::parentheses::{NeedsParentheses, OptionalParentheses};
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
+use crate::statement::stmt_assign::is_assignment_with_splittable_targets;
 
 #[derive(Default)]
 pub struct FormatExprNumberLiteral;
@@ -56,10 +58,16 @@ impl FormatNodeRule<ExprNumberLiteral> for FormatExprNumberLiteral {
 impl NeedsParentheses for ExprNumberLiteral {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
-        _context: &PyFormatContext,
+        parent: AnyNodeRef,
+        context: &PyFormatContext,
     ) -> OptionalParentheses {
-        OptionalParentheses::BestFit
+        if is_prefer_splitting_right_hand_side_of_assignments_enabled(context)
+            && is_assignment_with_splittable_targets(parent, context)
+        {
+            OptionalParentheses::Multiline
+        } else {
+            OptionalParentheses::BestFit
+        }
     }
 }
 

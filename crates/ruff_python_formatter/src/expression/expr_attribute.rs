@@ -10,6 +10,8 @@ use crate::expression::parentheses::{
 };
 use crate::expression::CallChainLayout;
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
+use crate::statement::stmt_assign::is_assignment_with_splittable_targets;
 
 #[derive(Default)]
 pub struct FormatExprAttribute {
@@ -137,7 +139,7 @@ impl FormatNodeRule<ExprAttribute> for FormatExprAttribute {
 impl NeedsParentheses for ExprAttribute {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
+        parent: AnyNodeRef,
         context: &PyFormatContext,
     ) -> OptionalParentheses {
         // Checks if there are any own line comments in an attribute chain (a.b.c).
@@ -156,6 +158,13 @@ impl NeedsParentheses for ExprAttribute {
             context.source(),
         ) {
             OptionalParentheses::Never
+        } else if is_prefer_splitting_right_hand_side_of_assignments_enabled(context)
+            && is_assignment_with_splittable_targets(parent, context)
+        {
+            match self.value.needs_parentheses(self.into(), context) {
+                OptionalParentheses::BestFit => OptionalParentheses::Multiline,
+                parentheses => parentheses,
+            }
         } else {
             self.value.needs_parentheses(self.into(), context)
         }

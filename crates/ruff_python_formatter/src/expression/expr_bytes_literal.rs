@@ -6,6 +6,8 @@ use crate::expression::expr_string_literal::is_multiline_string;
 use crate::expression::parentheses::{NeedsParentheses, OptionalParentheses};
 use crate::expression::string::{AnyString, FormatString};
 use crate::prelude::*;
+use crate::preview::is_prefer_splitting_right_hand_side_of_assignments_enabled;
+use crate::statement::stmt_assign::is_assignment_with_splittable_targets;
 
 #[derive(Default)]
 pub struct FormatExprBytesLiteral;
@@ -28,13 +30,17 @@ impl FormatNodeRule<ExprBytesLiteral> for FormatExprBytesLiteral {
 impl NeedsParentheses for ExprBytesLiteral {
     fn needs_parentheses(
         &self,
-        _parent: AnyNodeRef,
+        parent: AnyNodeRef,
         context: &PyFormatContext,
     ) -> OptionalParentheses {
         if self.value.is_implicit_concatenated() {
             OptionalParentheses::Multiline
         } else if is_multiline_string(self.into(), context.source()) {
             OptionalParentheses::Never
+        } else if is_prefer_splitting_right_hand_side_of_assignments_enabled(context)
+            && is_assignment_with_splittable_targets(parent, context)
+        {
+            OptionalParentheses::Multiline
         } else {
             OptionalParentheses::BestFit
         }

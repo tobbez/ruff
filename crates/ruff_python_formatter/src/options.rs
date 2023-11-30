@@ -123,6 +123,10 @@ impl PyFormatOptions {
         self.preview
     }
 
+    pub const fn is_preview(&self) -> bool {
+        self.preview.is_enabled()
+    }
+
     #[must_use]
     pub fn with_indent_width(mut self, indent_width: IndentWidth) -> Self {
         self.indent_width = indent_width;
