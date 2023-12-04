@@ -1,8 +1,8 @@
 use std::{borrow::Cow, collections::VecDeque};
 
-use ruff_python_trivia::PythonWhitespace;
 use {
     ruff_formatter::{write, IndentStyle, Printed},
+    ruff_python_trivia::PythonWhitespace,
     ruff_source_file::Locator,
     ruff_text_size::{Ranged, TextLen, TextRange, TextSize},
 };
